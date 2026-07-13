@@ -18,4 +18,4 @@ pub mod validation;
 pub mod warnings;
 
 /// BIP 14 user agent string, derived from Cargo.toml version at compile time.
-pub const USER_AGENT: &str = concat!("/satd:", env!("CARGO_PKG_VERSION"), "/");
+pub const USER_AGENT: &str = concat!("/gnostr:", env!("CARGO_PKG_VERSION"), "/");
