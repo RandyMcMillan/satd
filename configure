@@ -73,9 +73,17 @@ EOF
             SDKROOT="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
         fi
 
+        export LIBCLANG_PATH="$LIBCLANG_DIR"
+        export DYLD_LIBRARY_PATH="$LIBCLANG_DIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        export DYLD_FALLBACK_LIBRARY_PATH="$LIBCLANG_DIR${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+        if [ -n "$SDKROOT" ]; then
+            export BINDGEN_EXTRA_CLANG_ARGS="-isysroot ${SDKROOT}"
+        fi
+
         cat > "$CONFIG" <<EOF
 [env]
 LIBCLANG_PATH = "$LIBCLANG_DIR"
+DYLD_LIBRARY_PATH = "$LIBCLANG_DIR"
 DYLD_FALLBACK_LIBRARY_PATH = "$LIBCLANG_DIR"
 EOF
         if [ -n "$SDKROOT" ]; then
