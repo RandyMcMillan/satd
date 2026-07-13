@@ -95,9 +95,12 @@ jobs:
           components: clippy
           override: true
 
-      - name: Run ./configure --build -j$(nproc) -v
+      - name: Run ./configure --build -j$(getconf _NPROCESSORS_ONLN) -v
         if: runner.os == 'macOS'
-        run: ./configure --build -j$(nproc) -v
+        run: |
+          set -euo pipefail
+          jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)"
+          ./configure --build -j"${jobs}" -v
 
       # Caches ~/.cargo/{registry,git,bin} AND target/, pruning the
       # fast-changing first-party crate artifacts so the expensive dependency
