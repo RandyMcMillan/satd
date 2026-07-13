@@ -7,6 +7,7 @@ CARGO_DIR=".cargo"
 CONFIG="$CARGO_DIR/config.toml"
 VERIFY_CMD="check"
 VERIFY_JOBS=""
+VERBOSE=false
 
 detect_jobs() {
     if command -v nproc &>/dev/null; then
@@ -29,9 +30,12 @@ for arg in "$@"; do
         --build)
             VERIFY_CMD="build"
             ;;
+        -v|--verbose|-V)
+            VERBOSE=true
+            ;;
         -j|--jobs)
             echo "ERROR: Missing value for $arg"
-            echo "Usage: ./configure [--build] [-j N]"
+            echo "Usage: ./configure [--build] [-j N] [--verbose]"
             exit 1
             ;;
         -j=*|--jobs=*)
@@ -41,14 +45,15 @@ for arg in "$@"; do
             VERIFY_JOBS="${arg#-j}"
             ;;
         -h|--help)
-            echo "Usage: ./configure [--build] [-j N]"
+            echo "Usage: ./configure [--build] [-j N] [--verbose]"
             echo "  --build  run cargo build instead of cargo check"
             echo "  -j N     pass N to cargo for parallel jobs; omit N for auto-detect"
+            echo "  -v, -V, --verbose  stream full cargo output"
             exit 0
             ;;
         *)
             echo "ERROR: Unknown option: $arg"
-            echo "Usage: ./configure [--build] [-j N]"
+            echo "Usage: ./configure [--build] [-j N] [--verbose]"
             exit 1
             ;;
     esac
@@ -173,15 +178,31 @@ else
     if [ -z "$VERIFY_JOBS" ] || [ "$VERIFY_JOBS" = "auto" ] || [ "$VERIFY_JOBS" = "nproc" ]; then
         VERIFY_JOBS="$(detect_jobs)"
     fi
-    echo "Running cargo ${VERIFY_CMD}..."
-    CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
-    if cargo "$VERIFY_CMD" -j "$VERIFY_JOBS" >"$CHECK_LOG" 2>&1; then
-        CHECK_STATUS=0
-    else
-        CHECK_STATUS=$?
+    CARGO_CMD="cargo ${VERIFY_CMD} -j${VERIFY_JOBS}"
+    if [ "$VERBOSE" = true ]; then
+        CARGO_CMD="${CARGO_CMD} -v"
     fi
-    tail -3 "$CHECK_LOG"
-    rm -f "$CHECK_LOG"
+    if [ "$VERBOSE" = true ]; then
+        echo "Running ${CARGO_CMD}"
+    else
+        echo "Running ${CARGO_CMD}"
+    fi
+    if [ "$VERBOSE" = true ]; then
+        if cargo "$VERIFY_CMD" -j "$VERIFY_JOBS" -v; then
+            CHECK_STATUS=0
+        else
+            CHECK_STATUS=$?
+        fi
+    else
+        CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
+        if cargo "$VERIFY_CMD" -j "$VERIFY_JOBS" >"$CHECK_LOG" 2>&1; then
+            CHECK_STATUS=0
+        else
+            CHECK_STATUS=$?
+        fi
+        tail -3 "$CHECK_LOG"
+        rm -f "$CHECK_LOG"
+    fi
     if [ "$CHECK_STATUS" -eq 0 ]; then
         echo ""
         echo "Build OK. Run tests with: cargo test"
