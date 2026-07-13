@@ -498,10 +498,9 @@ Tag-triggered (`v*`) releases produce, per tag, via
   - `aarch64-unknown-linux-musl` (statically-linked musl)
   - `aarch64-apple-darwin` (macOS Apple Silicon)
 
-  `x86_64-apple-darwin` is not built in the standard release matrix — macos-13 is being
-  deprecated by GitHub and Apple Silicon is the targeted macOS
-  surface. Operators who need x86_64 darwin can cross-compile from
-  an arm64 darwin host (`cargo build --release --target=x86_64-apple-darwin`).
+  `x86_64-apple-darwin` and `aarch64-apple-darwin` are both built in the
+  standard release matrix. Operators can also cross-compile either target
+  locally with `cargo build --release --target=<triple>`.
 
   Each tarball contains stripped `satd` + `sat-cli` binaries and the
   authoritative reference docs (`README.md`, `PACKAGING.md`,
@@ -578,12 +577,11 @@ across the gnu-linux release targets currently shipped
 (`x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`), so a
 single SBOM per binary covers both tarballs.
 
-If a future release adds musl or macOS targets — which can resolve
-different platform-specific deps (e.g. `libc` shim crates,
+If a future release adds musl or changes the macOS target set — which
+can resolve different platform-specific deps (e.g. `libc` shim crates,
 `security-framework` on darwin) — the workflow will need to emit a
 per-target SBOM and the artifact filenames will gain a target-triple
-suffix. Track this when re-enabling the deferred targets in the
-release matrix.
+suffix.
 
 ### Supply-chain policy
 
