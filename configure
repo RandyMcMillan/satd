@@ -100,9 +100,9 @@ if [ "$OS" = "Darwin" ]; then
     LIBCLANG_DIR=""
     XCODE_DIR="$(xcode-select -p 2>/dev/null || true)"
     for dir in \
+        /Library/Developer/CommandLineTools/usr/lib \
         "${XCODE_DIR}/Toolchains/XcodeDefault.xctoolchain/usr/lib" \
         "${XCODE_DIR}/usr/lib" \
-        /Library/Developer/CommandLineTools/usr/lib \
         /usr/local/opt/llvm/lib \
         /opt/homebrew/opt/llvm/lib
     do
