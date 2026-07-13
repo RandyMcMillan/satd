@@ -310,6 +310,10 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: ${{ matrix.target }}
 
+      - name: Run ./configure (macOS)
+        if: runner.os == 'macOS'
+        run: ./configure
+
       # Zig + cargo-zigbuild for musl cross-compilation. The
       # `ziglang` PyPI wheel bundles a working zig binary (no
       # third-party action needed) and cargo-zigbuild auto-discovers
