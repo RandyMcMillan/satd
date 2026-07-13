@@ -296,8 +296,16 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           set -euo pipefail
-          xcode_dir="$(xcode-select -p)"
-          libclang_dir="${xcode_dir}/Toolchains/XcodeDefault.xctoolchain/usr/lib"
+          for libclang_dir in \
+            /Library/Developer/CommandLineTools/usr/lib \
+            "$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib" \
+            /usr/local/opt/llvm/lib \
+            /opt/homebrew/opt/llvm/lib
+          do
+            if [ -f "${libclang_dir}/libclang.dylib" ]; then
+              break
+            fi
+          done
           test -f "${libclang_dir}/libclang.dylib"
           sudo mkdir -p /usr/local/lib
           sudo ln -sf "${libclang_dir}/libclang.dylib" /usr/local/lib/libclang.dylib
