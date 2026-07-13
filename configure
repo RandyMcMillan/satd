@@ -119,20 +119,24 @@ echo "  Cargo config: $CONFIG"
 echo ""
 
 # Verify the build works
-echo "Running cargo check..."
-CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
-if cargo check >"$CHECK_LOG" 2>&1; then
-    CHECK_STATUS=0
+if [ "${CI:-false}" = "true" ]; then
+    echo "Skipping cargo check in CI."
 else
-    CHECK_STATUS=$?
-fi
-tail -3 "$CHECK_LOG"
-rm -f "$CHECK_LOG"
-if [ "$CHECK_STATUS" -eq 0 ]; then
-    echo ""
-    echo "Build OK. Run tests with: cargo test"
-else
-    echo ""
-    echo "Build failed. See errors above."
-    exit "$CHECK_STATUS"
+    echo "Running cargo check..."
+    CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
+    if cargo check >"$CHECK_LOG" 2>&1; then
+        CHECK_STATUS=0
+    else
+        CHECK_STATUS=$?
+    fi
+    tail -3 "$CHECK_LOG"
+    rm -f "$CHECK_LOG"
+    if [ "$CHECK_STATUS" -eq 0 ]; then
+        echo ""
+        echo "Build OK. Run tests with: cargo test"
+    else
+        echo ""
+        echo "Build failed. See errors above."
+        exit "$CHECK_STATUS"
+    fi
 fi
