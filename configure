@@ -5,6 +5,25 @@ set -e
 
 CARGO_DIR=".cargo"
 CONFIG="$CARGO_DIR/config.toml"
+VERIFY_CMD="check"
+
+for arg in "$@"; do
+    case "$arg" in
+        --build)
+            VERIFY_CMD="build"
+            ;;
+        -h|--help)
+            echo "Usage: ./configure [--build]"
+            echo "  --build  run cargo build instead of cargo check"
+            exit 0
+            ;;
+        *)
+            echo "ERROR: Unknown option: $arg"
+            echo "Usage: ./configure [--build]"
+            exit 1
+            ;;
+    esac
+done
 
 echo "Checking build dependencies..."
 
@@ -120,11 +139,11 @@ echo ""
 
 # Verify the build works
 if [ "${CI:-false}" = "true" ]; then
-    echo "Skipping cargo check in CI."
+    echo "Skipping cargo ${VERIFY_CMD} in CI."
 else
-    echo "Running cargo check..."
+    echo "Running cargo ${VERIFY_CMD}..."
     CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
-    if cargo check >"$CHECK_LOG" 2>&1; then
+    if cargo "$VERIFY_CMD" >"$CHECK_LOG" 2>&1; then
         CHECK_STATUS=0
     else
         CHECK_STATUS=$?
