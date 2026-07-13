@@ -39,8 +39,9 @@ on:
     tags:
       - 'v*'
   # The PR dry-run exists to catch breakage in the release machinery
-  # itself — the cross-target matrix (musl/aarch64/macos), the
-  # rocksdb-sys C++ cross-build, tarball staging, the Docker image, and
+  # itself — the cross-target matrix (Linux musl, Linux arm64, macOS Intel,
+  # macOS Apple Silicon), the rocksdb-sys C++ cross-build, tarball staging,
+  # the Docker image, and
   # the cargo-deny supply-chain gate. That machinery breaks on changes
   # to the build/packaging inputs below, NOT on ordinary code edits:
   # the regular CI (ci.yml) already compiles + tests the workspace on
@@ -237,10 +238,8 @@ jobs:
             os: ubuntu-24.04
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-          # macos-13 (Intel) is intentionally not in the matrix — Apple
-          # Silicon is the targeted macOS surface for satd; a downstream
-          # packager who needs an x86_64 darwin build can cross-build
-          # from an arm64 darwin host.
+          - target: x86_64-apple-darwin
+            os: macos-13
           - target: aarch64-apple-darwin
             os: macos-14
           # musl: built via cargo-zigbuild on the amd64 Linux host —
