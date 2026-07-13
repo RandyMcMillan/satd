@@ -39,9 +39,49 @@ for dir in /usr/lib/clang/*/include; do
     fi
 done
 
+OS="$(uname -s)"
+
 mkdir -p "$CARGO_DIR"
 
-if [ "$CLANG_HAS_STDDEF" = true ]; then
+if [ "$OS" = "Darwin" ]; then
+    LIBCLANG_DIR=""
+    XCODE_DIR="$(xcode-select -p 2>/dev/null || true)"
+    for dir in \
+        "${XCODE_DIR}/Toolchains/XcodeDefault.xctoolchain/usr/lib" \
+        "${XCODE_DIR}/usr/lib" \
+        /Library/Developer/CommandLineTools/usr/lib
+    do
+        if [ -f "$dir/libclang.dylib" ]; then
+            LIBCLANG_DIR="$dir"
+            break
+        fi
+    done
+
+    if [ -z "$LIBCLANG_DIR" ]; then
+        echo "WARNING: Could not find libclang.dylib in Xcode or Command Line Tools paths."
+        echo "  Install Xcode Command Line Tools or Xcode so libclang is available."
+        cat > "$CONFIG" <<'EOF'
+# WARNING: libclang.dylib not found. librocksdb-sys may fail on macOS.
+# Install Xcode Command Line Tools or Xcode, then rerun ./configure.
+EOF
+    else
+        echo "  libclang library found: $LIBCLANG_DIR"
+        SDKROOT=""
+        if command -v xcrun &>/dev/null; then
+            SDKROOT="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+        fi
+
+        cat > "$CONFIG" <<EOF
+[env]
+LIBCLANG_PATH = "$LIBCLANG_DIR"
+EOF
+        if [ -n "$SDKROOT" ]; then
+            cat >> "$CONFIG" <<EOF
+BINDGEN_EXTRA_CLANG_ARGS = "-isysroot ${SDKROOT}"
+EOF
+        fi
+    fi
+elif [ "$CLANG_HAS_STDDEF" = true ]; then
     echo "  libclang headers found — no workaround needed"
     cat > "$CONFIG" <<'EOF'
 # No special configuration needed — libclang headers are available.
