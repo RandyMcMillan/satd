@@ -6,20 +6,49 @@ set -e
 CARGO_DIR=".cargo"
 CONFIG="$CARGO_DIR/config.toml"
 VERIFY_CMD="check"
+VERIFY_JOBS=""
+
+detect_jobs() {
+    if command -v nproc &>/dev/null; then
+        nproc
+        return
+    fi
+
+    case "$(uname -s)" in
+        Darwin)
+            sysctl -n hw.ncpu
+            ;;
+        *)
+            getconf _NPROCESSORS_ONLN
+            ;;
+    esac
+}
 
 for arg in "$@"; do
     case "$arg" in
         --build)
             VERIFY_CMD="build"
             ;;
+        -j|--jobs)
+            echo "ERROR: Missing value for $arg"
+            echo "Usage: ./configure [--build] [-j N]"
+            exit 1
+            ;;
+        -j=*|--jobs=*)
+            VERIFY_JOBS="${arg#*=}"
+            ;;
+        -j*)
+            VERIFY_JOBS="${arg#-j}"
+            ;;
         -h|--help)
-            echo "Usage: ./configure [--build]"
+            echo "Usage: ./configure [--build] [-j N]"
             echo "  --build  run cargo build instead of cargo check"
+            echo "  -j N     pass N to cargo for parallel jobs; omit N for auto-detect"
             exit 0
             ;;
         *)
             echo "ERROR: Unknown option: $arg"
-            echo "Usage: ./configure [--build]"
+            echo "Usage: ./configure [--build] [-j N]"
             exit 1
             ;;
     esac
@@ -141,9 +170,12 @@ echo ""
 if [ "${CI:-false}" = "true" ]; then
     echo "Skipping cargo ${VERIFY_CMD} in CI."
 else
+    if [ -z "$VERIFY_JOBS" ] || [ "$VERIFY_JOBS" = "auto" ] || [ "$VERIFY_JOBS" = "nproc" ]; then
+        VERIFY_JOBS="$(detect_jobs)"
+    fi
     echo "Running cargo ${VERIFY_CMD}..."
     CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
-    if cargo "$VERIFY_CMD" >"$CHECK_LOG" 2>&1; then
+    if cargo "$VERIFY_CMD" -j "$VERIFY_JOBS" >"$CHECK_LOG" 2>&1; then
         CHECK_STATUS=0
     else
         CHECK_STATUS=$?
