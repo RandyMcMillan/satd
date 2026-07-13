@@ -95,6 +95,10 @@ jobs:
           components: clippy
           override: true
 
+      - name: Run ./configure (macOS)
+        if: runner.os == 'macOS'
+        run: ./configure
+
       # Caches ~/.cargo/{registry,git,bin} AND target/, pruning the
       # fast-changing first-party crate artifacts so the expensive dependency
       # builds (rocksdb-sys + its C++ tree, bindgen, proc-macros) are restored
