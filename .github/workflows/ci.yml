@@ -95,9 +95,9 @@ jobs:
           components: clippy
           override: true
 
-      - name: Run ./configure (macOS)
+      - name: Run ./configure --build -j$(nproc) -v
         if: runner.os == 'macOS'
-        run: ./configure
+        run: ./configure --build -j$(nproc) -v
 
       # Caches ~/.cargo/{registry,git,bin} AND target/, pruning the
       # fast-changing first-party crate artifacts so the expensive dependency
