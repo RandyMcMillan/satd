@@ -1,3 +1,4 @@
+/datadir
 /target
 # Build output of the standalone BDK canary crate (scripts/canary/bdk-canary).
 # Its Cargo.lock IS committed (reproducible downstream pin); its target/ is not.
