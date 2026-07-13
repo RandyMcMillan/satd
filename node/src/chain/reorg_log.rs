@@ -19,7 +19,6 @@
 use std::collections::VecDeque;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use bitcoin::BlockHash;
@@ -208,23 +207,14 @@ mod tests {
         BlockHash::from_raw_hash(bitcoin::hashes::sha256d::Hash::from_byte_array(bytes))
     }
 
-    fn tempdir() -> PathBuf {
-        let p = std::env::temp_dir().join(format!(
-            "satd-reorglog-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .subsec_nanos()
-        ));
-        std::fs::create_dir_all(&p).unwrap();
-        p
+    fn tempdir() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
     }
 
     #[test]
     fn record_roundtrips_through_ring_and_history() {
         let dir = tempdir();
-        let log = ReorgLog::open(&dir, 8).unwrap();
+        let log = ReorgLog::open(dir.path(), 8).unwrap();
 
         let rec = ReorgRecord::new(
             100,
@@ -242,13 +232,12 @@ mod tests {
         assert_eq!(hist[0].disconnected.len(), 3);
         assert_eq!(hist[0].reconnected.len(), 3);
 
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn ring_bounds_at_capacity() {
         let dir = tempdir();
-        let log = ReorgLog::open(&dir, 3).unwrap();
+        let log = ReorgLog::open(dir.path(), 3).unwrap();
         for i in 0..10u8 {
             log.record(ReorgRecord::new(
                 i as u32,
@@ -263,14 +252,13 @@ mod tests {
         assert_eq!(hist.len(), 3, "ring should cap at capacity");
         // Most recent records retained.
         assert_eq!(hist[2].fork_height, 9);
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn reopen_seeds_ring_from_disk() {
         let dir = tempdir();
         {
-            let log = ReorgLog::open(&dir, 8).unwrap();
+            let log = ReorgLog::open(dir.path(), 8).unwrap();
             log.record(ReorgRecord::new(
                 5,
                 dummy_hash(1),
@@ -280,17 +268,16 @@ mod tests {
                 vec![dummy_hash(20)],
             ));
         }
-        let log2 = ReorgLog::open(&dir, 8).unwrap();
+        let log2 = ReorgLog::open(dir.path(), 8).unwrap();
         let hist = log2.history(3600);
         assert_eq!(hist.len(), 1);
         assert_eq!(hist[0].fork_height, 5);
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn history_filters_by_since_secs() {
         let dir = tempdir();
-        let log = ReorgLog::open(&dir, 8).unwrap();
+        let log = ReorgLog::open(dir.path(), 8).unwrap();
         // Manually push a stale record bypassing `record()` to simulate
         // a very old event.
         {
@@ -317,13 +304,12 @@ mod tests {
         assert_eq!(fresh.len(), 1, "stale record filtered out");
         let all = log.history(u64::MAX);
         assert_eq!(all.len(), 2);
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn webhook_drops_when_channel_full() {
         let dir = tempdir();
-        let log = ReorgLog::open(&dir, 8).unwrap();
+        let log = ReorgLog::open(dir.path(), 8).unwrap();
         let (tx, _rx) = mpsc::channel::<ReorgRecord>(1);
         log.set_webhook_sender(tx);
         for i in 0..5u8 {
@@ -338,6 +324,5 @@ mod tests {
         }
         // Channel capacity 1, rx never drained → at least some drops.
         assert!(log.webhook_drops() > 0, "expected at least one drop");
-        std::fs::remove_dir_all(&dir).ok();
     }
 }
