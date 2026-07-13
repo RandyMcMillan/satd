@@ -312,7 +312,7 @@ jobs:
 
       - name: Run ./configure (macOS)
         if: runner.os == 'macOS'
-        run: ./configure
+        run: ./configure -j$(nproc) -v
 
       # Zig + cargo-zigbuild for musl cross-compilation. The
       # `ziglang` PyPI wheel bundles a working zig binary (no
