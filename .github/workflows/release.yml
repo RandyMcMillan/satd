@@ -310,6 +310,9 @@ jobs:
           sudo mkdir -p /usr/local/lib
           sudo ln -sf "${libclang_dir}/libclang.dylib" /usr/local/lib/libclang.dylib
           # LIBCLANG_PATH is the bindgen-side hint; harmless to also set.
+          if [ "${libclang_dir}" = "/Library/Developer/CommandLineTools/usr/lib" ]; then
+            echo "DEVELOPER_DIR=/Library/Developer/CommandLineTools" >> "$GITHUB_ENV"
+          fi
           echo "LIBCLANG_PATH=${libclang_dir}" >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain
