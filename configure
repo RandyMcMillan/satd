@@ -49,7 +49,9 @@ if [ "$OS" = "Darwin" ]; then
     for dir in \
         "${XCODE_DIR}/Toolchains/XcodeDefault.xctoolchain/usr/lib" \
         "${XCODE_DIR}/usr/lib" \
-        /Library/Developer/CommandLineTools/usr/lib
+        /Library/Developer/CommandLineTools/usr/lib \
+        /usr/local/opt/llvm/lib \
+        /opt/homebrew/opt/llvm/lib
     do
         if [ -f "$dir/libclang.dylib" ]; then
             LIBCLANG_DIR="$dir"
@@ -74,6 +76,7 @@ EOF
         cat > "$CONFIG" <<EOF
 [env]
 LIBCLANG_PATH = "$LIBCLANG_DIR"
+DYLD_FALLBACK_LIBRARY_PATH = "$LIBCLANG_DIR"
 EOF
         if [ -n "$SDKROOT" ]; then
             cat >> "$CONFIG" <<EOF
@@ -109,11 +112,19 @@ echo ""
 
 # Verify the build works
 echo "Running cargo check..."
-if cargo check 2>&1 | tail -3; then
+CHECK_LOG="$(mktemp -t satd-cargo-check.XXXXXX)"
+if cargo check >"$CHECK_LOG" 2>&1; then
+    CHECK_STATUS=0
+else
+    CHECK_STATUS=$?
+fi
+tail -3 "$CHECK_LOG"
+rm -f "$CHECK_LOG"
+if [ "$CHECK_STATUS" -eq 0 ]; then
     echo ""
     echo "Build OK. Run tests with: cargo test"
 else
     echo ""
     echo "Build failed. See errors above."
-    exit 1
+    exit "$CHECK_STATUS"
 fi
