@@ -24,9 +24,16 @@ permissions:
 jobs:
 
   test:
-    name: "Tests"
-    runs-on: ubuntu-24.04
+    name: "Tests / ${{ matrix.os }}"
+    runs-on: ${{ matrix.os }}
     if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+          - os: macos-13
+          - os: macos-14
 
     steps:
       - name: Checkout sources
@@ -38,6 +45,7 @@ jobs:
       # ~14 GB of free disk and SIGBUS the linker mid-link of debug-mode
       # test binaries. Reclaim ~20 GB before the build.
       - name: Free disk space
+        if: runner.os == 'Linux'
         run: |
           set -euo pipefail
           df -h /
@@ -56,6 +64,7 @@ jobs:
       # libssl-dev is needed by the openssl-sys path in reqwest's
       # native-tls backend.
       - name: Install Linux build deps
+        if: runner.os == 'Linux'
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -65,6 +74,20 @@ jobs:
             libclang-dev \
             libssl-dev \
             pkg-config
+
+      # macOS needs the same libclang staging the release build uses:
+      # librocksdb-sys links libclang.dylib at runtime, and dyld won't
+      # find Xcode's copy unless we place it on a searched path.
+      - name: Stage libclang for rocksdb-sys (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          xcode_dir="$(xcode-select -p)"
+          libclang_dir="${xcode_dir}/Toolchains/XcodeDefault.xctoolchain/usr/lib"
+          test -f "${libclang_dir}/libclang.dylib"
+          sudo mkdir -p /usr/local/lib
+          sudo ln -sf "${libclang_dir}/libclang.dylib" /usr/local/lib/libclang.dylib
+          echo "LIBCLANG_PATH=${libclang_dir}" >> "$GITHUB_ENV"
 
       - name: Set up Rust toolchain
         uses: actions-rs/toolchain@v1
